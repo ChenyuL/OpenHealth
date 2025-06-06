@@ -16,7 +16,7 @@ import io
 
 # Configuration
 API_BASE_URL = "http://localhost:8000"
-ANTHROPIC_API_KEY = "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"
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 # Page config
 st.set_page_config(

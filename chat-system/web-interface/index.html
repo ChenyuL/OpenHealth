@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenHealth - Healthcare Chat Assistant</title>
+    <meta name="description" content="OpenHealth Chat System - AI-powered healthcare venture discussion platform for founders and entrepreneurs" />
+    <meta name="keywords" content="healthcare, chat, AI assistant, startup, venture capital, healthcare founders" />
+    <meta name="author" content="OpenHealth" />
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://openhealth.com/" />
+    <meta property="og:title" content="OpenHealth - Healthcare Chat Assistant" />
+    <meta property="og:description" content="AI-powered healthcare venture discussion platform for founders and entrepreneurs" />
+    <meta property="og:image" content="/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://openhealth.com/" />
+    <meta property="twitter:title" content="OpenHealth - Healthcare Chat Assistant" />
+    <meta property="twitter:description" content="AI-powered healthcare venture discussion platform for founders and entrepreneurs" />
+    <meta property="twitter:image" content="/twitter-image.png" />
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#1f77b4" />
+    <meta name="color-scheme" content="light dark" />
+    
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- Initial loading styles -->
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      html, body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #1e293b;
+      }
+      
+      #root {
+        height: 100%;
+        min-height: 100vh;
+      }
+      
+      /* Loading screen */
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      
+      .loading-text {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+      
+      .loading-subtext {
+        font-size: 16px;
+        opacity: 0.9;
+        text-align: center;
+        max-width: 400px;
+        line-height: 1.5;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* Hide loading once React loads */
+      .app-loaded .loading-container {
+        display: none;
+      }
+      
+      /* Error fallback styles */
+      .error-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+      
+      .error-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+      
+      .error-title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      
+      .error-message {
+        font-size: 18px;
+        margin-bottom: 30px;
+        max-width: 500px;
+        line-height: 1.6;
+        opacity: 0.95;
+      }
+      
+      .error-actions {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .error-button {
+        padding: 12px 24px;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+      
+      .error-button:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: white;
+        transform: translateY(-2px);
+      }
+      
+      .error-button.primary {
+        background: rgba(255, 255, 255, 0.9);
+        color: #dc2626;
+        border-color: white;
+      }
+      
+      .error-button.primary:hover {
+        background: white;
+      }
+      
+      /* Chat preview styles */
+      .chat-preview {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+        z-index: 1000;
+      }
+      
+      .chat-preview:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      }
+      
+      .chat-preview.pulse {
+        animation: pulse 2s infinite;
+      }
+      
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Loading screen shown while React app loads -->
+      <div class="loading-container" id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">🏥 OpenHealth Chat</div>
+        <div class="loading-subtext">
+          Connecting you with AI-powered healthcare venture assistance...
+        </div>
+      </div>
+      
+      <!-- Error fallback shown if React fails to load -->
+      <div class="error-container" id="error-screen" style="display: none;">
+        <div class="error-icon">🚨</div>
+        <div class="error-title">Unable to Load Chat System</div>
+        <div class="error-message">
+          The OpenHealth Chat System failed to load. This could be due to a network issue or browser compatibility problem.
+        </div>
+        <div class="error-actions">
+          <button class="error-button primary" onclick="window.location.reload()">
+            🔄 Reload Page
+          </button>
+          <a class="error-button" href="http://localhost:8000/docs" target="_blank">
+            📚 API Documentation
+          </a>
+          <a class="error-button" href="http://localhost:3001" target="_blank">
+            🔧 Admin Dashboard
+          </a>
+        </div>
+      </div>
+      
+      <!-- Chat preview button for demonstration -->
+      <div class="chat-preview pulse" id="chat-preview" style="display: none;">
+        💬
+      </div>
+    </div>
+
+    <!-- React Application Entry Point -->
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Error handling and initialization script -->
+    <script>
+      // Hide loading screen once React loads
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const loading = document.getElementById('loading-screen');
+          const error = document.getElementById('error-screen');
+          const chatPreview = document.getElementById('chat-preview');
+          
+          // Check if React app has mounted
+          const root = document.getElementById('root');
+          if (root && root.children.length > 1) {
+            loading.style.display = 'none';
+            // Show chat preview after app loads
+            if (chatPreview) {
+              setTimeout(() => {
+                chatPreview.style.display = 'flex';
+              }, 1000);
+            }
+          } else {
+            // Show error screen if React didn't mount after 10 seconds
+            setTimeout(function() {
+              if (loading.style.display !== 'none') {
+                loading.style.display = 'none';
+                error.style.display = 'flex';
+              }
+            }, 10000);
+          }
+        }, 1000);
+      });
+      
+      // Global error handler
+      window.addEventListener('error', function(e) {
+        console.error('Global error:', e);
+        const loading = document.getElementById('loading-screen');
+        const error = document.getElementById('error-screen');
+        
+        if (loading && error && e.filename && e.filename.includes('main')) {
+          loading.style.display = 'none';
+          error.style.display = 'flex';
+        }
+      });
+      
+      // Unhandled promise rejection handler
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e);
+      });
+      
+      // Chat preview click handler
+      document.addEventListener('DOMContentLoaded', function() {
+        const chatPreview = document.getElementById('chat-preview');
+        if (chatPreview) {
+          chatPreview.addEventListener('click', function() {
+            // This will be handled by React once it loads
+            console.log('Chat preview clicked - React will handle this');
+          });
+        }
+      });
+      
+      // Basic responsive design helper
+      function handleResize() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+      }
+      
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
+      handleResize();
+      
+      // Accessibility improvements
+      if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+      
+      // Performance monitoring
+      if ('performance' in window && 'PerformanceObserver' in window) {
+        try {
+          const observer = new PerformanceObserver((list) => {
+            const entries = list.getEntries();
+            entries.forEach((entry) => {
+              if (entry.entryType === 'navigation') {
+                console.log('Navigation timing:', {
+                  domContentLoaded: entry.domContentLoadedEventEnd - entry.domContentLoadedEventStart,
+                  loadComplete: entry.loadEventEnd - entry.loadEventStart,
+                  totalTime: entry.loadEventEnd - entry.fetchStart
+                });
+              }
+            });
+          });
+          observer.observe({ entryTypes: ['navigation'] });
+        } catch (e) {
+          console.log('Performance monitoring not supported');
+        }
+      }
+    </script>
+  </body>
+</html>

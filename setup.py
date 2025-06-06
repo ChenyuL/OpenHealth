@@ -62,41 +62,27 @@ def setup_database():
     """Set up PostgreSQL database"""
     print("\n🗄️ Setting up database...")
     
-    # Check if database exists
-    db_check = run_command(
-        "psql -lqt | cut -d \\| -f 1 | grep -qw openhealth", 
+    # Run database initialization script
+    db_init_result = run_command(
+        "python3 database/init_db.py", 
         check=False
     )
     
-    if db_check and db_check.returncode == 0:
-        print("✅ Database 'openhealth' already exists")
+    if db_init_result and db_init_result.returncode == 0:
+        print("✅ Database initialization completed successfully")
     else:
-        print("Creating database 'openhealth'...")
-        create_db = run_command("createdb openhealth", check=False)
-        if create_db and create_db.returncode == 0:
-            print("✅ Database created successfully")
-        else:
-            print("⚠️  Could not create database. You may need to:")
-            print("   1. Start PostgreSQL service")
-            print("   2. Create database manually: createdb openhealth")
-    
-    # Apply schema
-    print("Applying database schema...")
-    schema_result = run_command(
-        "psql openhealth -f database/schema.sql",
-        check=False
-    )
-    
-    if schema_result and schema_result.returncode == 0:
-        print("✅ Database schema applied successfully")
-    else:
-        print("⚠️  Could not apply schema. Manual setup may be required.")
+        print("⚠️  Database initialization encountered issues")
+        print("   You may need to:")
+        print("   1. Start PostgreSQL: brew services start postgresql (macOS)")
+        print("   2. Install psycopg2: pip install psycopg2-binary")
+        print("   3. Check database credentials in shared-backend/.env")
+        print("   4. Run manually: python3 database/init_db.py")
 
 def setup_backend():
     """Set up Python backend"""
-    print("\n🐍 Setting up backend...")
+    print("\n🐍 Setting up shared backend...")
     
-    backend_dir = Path("backend")
+    backend_dir = Path("shared-backend")
     
     # Create virtual environment
     if not (backend_dir / "venv").exists():
@@ -118,30 +104,42 @@ def setup_backend():
         print("✅ Python dependencies installed")
     else:
         print("⚠️  Some dependencies may have failed to install")
+        print("   Try manually: cd shared-backend && pip install fastapi uvicorn anthropic openai psycopg2-binary")
     
-    # Create .env file if it doesn't exist
+    # Check if .env file exists (we already created it)
     env_file = backend_dir / ".env"
-    if not env_file.exists():
-        print("Creating .env file...")
-        run_command("cp .env.example .env", cwd=backend_dir)
-        print("✅ Created .env file (please configure with your API keys)")
+    if env_file.exists():
+        print("✅ Environment file already configured with API keys")
     else:
-        print("✅ .env file already exists")
+        print("⚠️  .env file not found - please check API key setup")
 
 def setup_frontend():
-    """Set up React frontend"""
-    print("\n⚛️  Setting up frontend...")
+    """Set up React frontends"""
+    print("\n⚛️  Setting up frontends...")
     
-    frontend_dir = Path("frontend")
+    # Setup chat system frontend
+    chat_frontend_dir = Path("chat-system/web-interface")
+    if chat_frontend_dir.exists():
+        print("Installing chat system dependencies...")
+        npm_install = run_command("npm install", cwd=chat_frontend_dir, check=False)
+        
+        if npm_install and npm_install.returncode == 0:
+            print("✅ Chat system dependencies installed")
+        else:
+            print("⚠️  Chat system npm packages may have failed to install")
     
-    # Install dependencies
-    print("Installing Node.js dependencies...")
-    npm_install = run_command("npm install", cwd=frontend_dir, check=False)
+    # Setup admin dashboard frontend
+    admin_frontend_dir = Path("admin-dashboard/frontend")
+    if admin_frontend_dir.exists():
+        print("Installing admin dashboard dependencies...")
+        npm_install = run_command("npm install", cwd=admin_frontend_dir, check=False)
+        
+        if npm_install and npm_install.returncode == 0:
+            print("✅ Admin dashboard dependencies installed")
+        else:
+            print("⚠️  Admin dashboard npm packages may have failed to install")
     
-    if npm_install and npm_install.returncode == 0:
-        print("✅ Node.js dependencies installed")
-    else:
-        print("⚠️  Some npm packages may have failed to install")
+    print("Note: You may need to run 'npm install' manually in each frontend directory")
 
 def create_startup_scripts():
     """Create convenient startup scripts"""
@@ -149,53 +147,76 @@ def create_startup_scripts():
     
     # Backend startup script
     backend_script = """#!/bin/bash
-cd backend
+echo "🏥 Starting OpenHealth Backend..."
+cd shared-backend
 source venv/bin/activate
-python -m app.main
+python -m main
 """
     
     with open("start_backend.sh", "w") as f:
         f.write(backend_script)
     os.chmod("start_backend.sh", 0o755)
     
-    # Frontend startup script
-    frontend_script = """#!/bin/bash
-cd frontend
+    # Chat frontend startup script
+    chat_frontend_script = """#!/bin/bash
+echo "💬 Starting OpenHealth Chat System..."
+cd chat-system/web-interface
 npm start
 """
     
-    with open("start_frontend.sh", "w") as f:
-        f.write(frontend_script)
-    os.chmod("start_frontend.sh", 0o755)
+    with open("start_chat_frontend.sh", "w") as f:
+        f.write(chat_frontend_script)
+    os.chmod("start_chat_frontend.sh", 0o755)
+    
+    # Admin frontend startup script
+    admin_frontend_script = """#!/bin/bash
+echo "🔧 Starting OpenHealth Admin Dashboard..."
+cd admin-dashboard/frontend
+npm start
+"""
+    
+    with open("start_admin_frontend.sh", "w") as f:
+        f.write(admin_frontend_script)
+    os.chmod("start_admin_frontend.sh", 0o755)
     
     # Combined startup script
     combined_script = """#!/bin/bash
-echo "🚀 Starting OpenHealth Agent..."
-echo "Backend will start on http://localhost:8000"
-echo "Frontend will start on http://localhost:3000"
+echo "🚀 Starting OpenHealth Platform..."
+echo "Backend API: http://localhost:8000"
+echo "Chat System: http://localhost:3000"
+echo "Admin Dashboard: http://localhost:3001"
 echo ""
 
 # Start backend in background
-echo "Starting backend..."
-cd backend && source venv/bin/activate && python -m app.main &
+echo "Starting shared backend..."
+cd shared-backend && source venv/bin/activate && python -m main &
 BACKEND_PID=$!
 
-# Wait a moment for backend to start
-sleep 3
+# Wait for backend to start
+sleep 5
 
-# Start frontend
-echo "Starting frontend..."
-cd frontend && npm start &
-FRONTEND_PID=$!
+# Start chat frontend
+echo "Starting chat system..."
+cd chat-system/web-interface && npm start &
+CHAT_PID=$!
 
-echo "✅ Both services started!"
+# Wait a moment
+sleep 2
+
+# Start admin frontend
+echo "Starting admin dashboard..."
+cd admin-dashboard/frontend && npm start &
+ADMIN_PID=$!
+
+echo "✅ All services started!"
 echo "Backend PID: $BACKEND_PID"
-echo "Frontend PID: $FRONTEND_PID"
+echo "Chat Frontend PID: $CHAT_PID"
+echo "Admin Frontend PID: $ADMIN_PID"
 echo ""
-echo "Press Ctrl+C to stop both services"
+echo "Press Ctrl+C to stop all services"
 
 # Wait for user interrupt
-trap 'echo "Stopping services..."; kill $BACKEND_PID $FRONTEND_PID; exit' INT
+trap 'echo "Stopping all services..."; kill $BACKEND_PID $CHAT_PID $ADMIN_PID; exit' INT
 wait
 """
     
@@ -204,36 +225,47 @@ wait
     os.chmod("start_all.sh", 0o755)
     
     print("✅ Startup scripts created:")
-    print("  - start_backend.sh (backend only)")
-    print("  - start_frontend.sh (frontend only)")
-    print("  - start_all.sh (both services)")
+    print("  - start_backend.sh (shared backend)")
+    print("  - start_chat_frontend.sh (user chat system)")
+    print("  - start_admin_frontend.sh (admin dashboard)")
+    print("  - start_all.sh (all services)")
 
 def print_next_steps():
     """Print next steps for the user"""
-    print("\n🎉 Setup Complete!")
+    print("\n🎉 OpenHealth Setup Complete!")
     print("\n📋 Next Steps:")
-    print("1. Configure your API keys in backend/.env:")
-    print("   - ANTHROPIC_API_KEY for Claude AI")
-    print("   - OPENAI_API_KEY for embeddings (optional)")
-    print("   - AWS credentials for file storage (optional)")
+    print("1. ✅ API keys already configured in shared-backend/.env")
+    print("   - ANTHROPIC_API_KEY: Set")
+    print("   - OPENAI_API_KEY: Set")
     print("")
     print("2. Start the services:")
-    print("   ./start_all.sh    # Start both backend and frontend")
-    print("   # OR start separately:")
-    print("   ./start_backend.sh  # Backend on http://localhost:8000")
-    print("   ./start_frontend.sh # Frontend on http://localhost:3000")
+    print("   ./start_all.sh          # Start all services")
+    print("   # OR start individually:")
+    print("   ./start_backend.sh      # Backend API on http://localhost:8000")
+    print("   ./start_chat_frontend.sh     # Chat system on http://localhost:3000")
+    print("   ./start_admin_frontend.sh    # Admin dashboard on http://localhost:3001")
     print("")
-    print("3. Access the application:")
-    print("   - Frontend: http://localhost:3000")
-    print("   - Backend API: http://localhost:8000")
-    print("   - API Docs: http://localhost:8000/docs")
+    print("3. Access the applications:")
+    print("   - 💬 User Chat System: http://localhost:3000")
+    print("   - 🔧 Admin Dashboard: http://localhost:3001")
+    print("   - 🔗 Backend API: http://localhost:8000")
+    print("   - 📚 API Documentation: http://localhost:8000/docs")
     print("")
-    print("4. Create your first tenant and start screening healthcare ventures!")
+    print("4. Test the system:")
+    print("   - Register as a healthcare founder on the chat system")
+    print("   - Share your healthcare startup idea with the AI")
+    print("   - Login to admin dashboard (admin@openhealth.com / admin123)")
+    print("   - View conversations and venture analysis")
     print("")
     print("🔧 Troubleshooting:")
-    print("- Check backend/.env for correct configuration")
-    print("- Ensure PostgreSQL is running: brew services start postgresql")
+    print("- Ensure PostgreSQL is running: brew services start postgresql (macOS)")
+    print("- Check database connection: psql openhealth -c 'SELECT COUNT(*) FROM users;'")
     print("- Check logs in terminal for any errors")
+    print("- Verify Node.js and npm are installed: node --version && npm --version")
+    print("")
+    print("📖 Documentation:")
+    print("- Development guide: docs/DEVELOPMENT_SETUP.md")
+    print("- React components guide: docs/REACT_COMPONENTS_GUIDE.md")
 
 def main():
     """Main setup function"""
